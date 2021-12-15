@@ -2,11 +2,11 @@
 include("user.php");
 
 $myUser = new User(
-    "thibault-kine",
-    "test",
-    "thibault.kine@laplateforme.io",
-    "Thibault",
-    "Kine"
+    "toto13",
+    "tetatoto",
+    "totodu13@gmail.com",
+    "Toto",
+    "Dubois"
 );
 
 $myUser->register(
@@ -21,4 +21,6 @@ $myUser->connect(
     $myUser->login,
     $myUser->password
 );
+
+var_dump($myUser->getAllInfos());
 ?>

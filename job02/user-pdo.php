@@ -1,5 +1,5 @@
 <?php
-class User
+class UserPDO
 {
     // ATTRIBUTS
     private $id;
@@ -23,22 +23,24 @@ class User
     public function register($login, $password, $email, $firstname, $lastname)
     {
         // connexion a la base de données
-        $db = mysqli_connect("localhost", "root", "", "classes");
+        $db = new PDO(
+            "mysql:host=localhost;dbname=classes;charset=utf-8",
+            "root"
+        );
 
-        $selectQuery = "SELECT * FROM utilisateurs WHERE 
+        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE 
         login='$login' AND password='$password' AND email='$email' AND firstname='$firstname'
-        AND lastname='$lastname'";
-        $result = mysqli_query($db, $selectQuery);
-        $fetch = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        AND lastname='$lastname'");
+        $selectQuery->execute();
+        $fetch = $selectQuery->fetchAll();
 
         // vérification : il y a t il un autre utilisateur correspondant ?
         if(empty($fetch))
         {
-            $insertQuery = "INSERT INTO utilisateurs(login, password, email, firstname, lastname)
-            VALUES ('$login', '$password', '$email', '$firstname', '$lastname')";
-            mysqli_query($db, $insertQuery);
-            $result = mysqli_query($db, $selectQuery);
-            $fetch = mysqli_fetch_all($result, MYSQLI_ASSOC);
+            $insertQuery = $db->prepare("INSERT INTO utilisateurs(login, password, email, firstname, lastname)
+            VALUES ('$login', '$password', '$email', '$firstname', '$lastname')");
+            $insertQuery->execute();
+            $fetch = $selectQuery->fetchAll();
 
             $this -> id = $fetch[0]["id"];
 
@@ -53,13 +55,16 @@ class User
     public function connect($login, $password)
     {
         // connexion a la base de données
-        $db = mysqli_connect("localhost", "root", "", "classes");
+        $db = new PDO(
+            "mysql:host=localhost;dbname=classes;charset=utf-8",
+            "root"
+        );
 
-        $selectQuery = "SELECT * FROM utilisateurs WHERE 
-        login='$login' AND password='$password'";
-        $result = mysqli_query($db, $selectQuery);
-        $fetch = mysqli_fetch_all($result, MYSQLI_ASSOC);
-        
+        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE 
+        login='$login' AND password='$password'");
+        $selectQuery->execute();
+        $fetch = $selectQuery->fetchAll();
+
         // vérification : il y a t il un autre utilisateur correspondant ?
         if(!empty($fetch))
         {
@@ -102,13 +107,16 @@ class User
     {
         $id = $this -> id;
 
-        $db = mysqli_connect("localhost", "root", "", "classes");
-        $deleteQuery = "DELETE FROM utilisateurs WHERE id='$id'";
-        mysqli_query($db, $deleteQuery);
+        $db = new PDO(
+            "mysql:host=localhost;dbname=classes;charset=utf-8",
+            "root"
+        );
+        $deleteQuery = $db->prepare("DELETE FROM utilisateurs WHERE id='$id'");
+        $deleteQuery->execute();
 
-        $selectQuery = "SELECT * FROM utilisateurs WHERE id='$id'";
-        $result = mysqli_query($db, $selectQuery);
-        $fetch = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE id='$id'");
+        $selectQuery->execute();
+        $fetch = $selectQuery->fetchAll();
 
         // si $fetch n'a rien trouvé, alors l'utilisateur n'existe plus : la session peut être supprimée
         if(empty($fetch))
@@ -126,18 +134,21 @@ class User
     public function update($login, $password, $email, $firstname, $lastname)
     {
         $id = $this -> id;
-        $db = mysqli_connect("localhost", "root", "", "classes");
-        $selectQuery = "SELECT * FROM utilisateurs WHERE id='$id'";
-        $result = mysqli_query($db, $selectQuery);
-        $fetch = mysqli_fetch_all($result, MYSQLI_ASSOC);
+        $db = new PDO(
+            "mysql:host=localhost;dbname=classes;charset=utf-8",
+            "root"
+        );
+        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE id='$id'");
+        $selectQuery->execute();
+        $fetch = $selectQuery->fetchAll();
 
         if(!empty($fetch))
         {
-            $updateQuery = "UPDATE utilisateurs SET
+            $updateQuery = $db->prepare("UPDATE utilisateurs SET
             login='$login', password='$password', email='$email'
-            firstname='$firstname', lastname='$lastname' WHERE id='$id'";
-            $result = mysqli_query($db, $updateQuery);
-            $fetch = mysqli_fetch_all($result, MYSQLI_ASSOC);
+            firstname='$firstname', lastname='$lastname' WHERE id='$id'");
+            $updateQuery->execute();
+            $fetch = $updateQuery->fetchAll();
 
             // réassigne les attributs ET les variables de session
             // login
