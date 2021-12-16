@@ -20,12 +20,14 @@ class UserPDO
     }
 
     // METHODES
+    // Je vois pas pourquoi cette méthode doit avoir des paramètres mais bon
     public function register($login, $password, $email, $firstname, $lastname)
     {
         // connexion a la base de données
         $db = new PDO(
             "mysql:host=localhost;dbname=classes;charset=utf-8",
-            "root"
+            "root",
+            ""
         );
 
         $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE 
@@ -45,6 +47,41 @@ class UserPDO
             $this -> id = $fetch[0]["id"];
 
             return $fetch[0];
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    // Surcharge de register()
+    public function registerAuto()
+    {
+        $db = new PDO(
+            "mysql:host=localhost;dbname=classes;charset=utf-8",
+            "root",
+            ""
+        );
+
+        $login = $this->login;
+        $password = $this->password;
+        $email = $this->email;
+        $firstname = $this->firstname;
+        $lastname = $this->lastname;
+
+        $selectQuery = $db -> prepare("SELECT * FROM utilisateurs WHERE 
+        login='$login' AND password='$password' AND email='$email' AND firstname='$firstname AND lastname='$lastname'");
+        $selectQuery -> execute();
+        $fetch = $selectQuery -> fetchAll();
+
+        if(empty($fetch))
+        {
+            $insertQuery = $db -> prepare("INSERT INTO utilisateurs(login, password, email, firstname, lastname) 
+            VALUES ('$login', '$password', '$email', '$firstname', '$lastname'");
+            $insertQuery -> execute();
+            $fetch = $selectQuery -> fetchAll();
+
+            $this -> id = $fetch[0]["id"];
         }
         else
         {

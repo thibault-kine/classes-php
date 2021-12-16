@@ -9,15 +9,9 @@ $myUser = new UserPDO(
     "Dupuis"
 );
 
-$myUser->register(
-    "tata84",
-    "tatadu84",
-    "tatatdu84@gmail.com",
-    "Tata",
-    "Dupuis"
-);
+$myUser -> registerAuto();
 
-$myUser->connect(
+$myUser -> connect(
     "tata84",
     "tatadu84"
 );
