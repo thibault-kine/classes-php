@@ -10,220 +10,164 @@ class UserPDO
     public $lastname;
 
     // METHODE CONSTRUCT (équivalent de __init__() en python)
-    public function __construct($login, $password, $email, $firstname, $lastname)
+    public function __construct()
     {
-        $this -> login = $login;
-        $this -> password = $password;
-        $this -> email = $email;
-        $this -> firstname = $firstname;
-        $this -> lastname = $lastname;
+        $db = "mysql:dbname=classes;host=localhost;";
+
+        try 
+        {
+            $this->bdd = new PDO($db, "root", "");
+            $this->bdd->exec("SET NAMES utf8");
+            $this->bdd->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE,  PDO::FETCH_ASSOC);
+        } 
+        catch (PDOException $e) 
+        {
+            die("Erreur de connexion a la base:".$e->getMessage());
+        }
+        return $this->bdd;
     }
 
     // METHODES
-    // Je vois pas pourquoi cette méthode doit avoir des paramètres mais bon
     public function register($login, $password, $email, $firstname, $lastname)
     {
-        // connexion a la base de données
-        $db = new PDO(
-            "mysql:host=localhost;dbname=classes;charset=utf-8",
-            "root",
-            ""
-        );
+        $selectQuery = "SELECT * FROM utilisateurs WHERE login='$login'";
 
-        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE 
-        login='$login' AND password='$password' AND email='$email' AND firstname='$firstname'
-        AND lastname='$lastname'");
-        $selectQuery->execute();
-        $fetch = $selectQuery->fetchAll();
+        $prepQuery = $this->bdd->prepare($selectQuery);
 
-        // vérification : il y a t il un autre utilisateur correspondant ?
-        if(empty($fetch))
+        //ON INJECTE LES VALEURS AVEC LA FONCTION "bindValue"
+        //PDO::PARAM_STR Pour dire que notre paramètre est une chaine de caractères
+        $prepQuery->bindValue(":login", $login, PDO::PARAM_STR);
+        $prepQuery->execute();
+
+        $select = $prepQuery->fetchAll();
+
+        if (count($select) > 0) 
         {
-            $insertQuery = $db->prepare("INSERT INTO utilisateurs(login, password, email, firstname, lastname)
-            VALUES ('$login', '$password', '$email', '$firstname', '$lastname')");
-            $insertQuery->execute();
-            $fetch = $selectQuery->fetchAll();
-
-            $this -> id = $fetch[0]["id"];
-
-            return $fetch[0];
-        }
-        else
+            return "Ce login existe déjà, choisissez-en un autre.";
+        } 
+        else 
         {
-            return 0;
-        }
-    }
+            $insertQuery = "INSERT INTO `utilisateurs`(`login`, `password`, `email`, `firstname`, `lastname`) VALUES ('$login', '$password', '$email', '$firstname', '$lastname')";
 
-    // Surcharge de register()
-    public function registerAuto()
-    {
-        $db = new PDO(
-            "mysql:host=localhost;dbname=classes;charset=utf-8",
-            "root",
-            ""
-        );
+            //ON PREPARE LA REQUETE
+            $prepQuery = $this->bdd->prepare($insertQuery);
 
-        $login = $this->login;
-        $password = $this->password;
-        $email = $this->email;
-        $firstname = $this->firstname;
-        $lastname = $this->lastname;
+            //ON INJECTE LES VALEURS AVEC LA FONCTION "bindValue"
+            //PDO::PARAM_STR Pour dire que notre paramètre est une chaine de caractères
+            $prepQuery->bindValue(":login", $login, PDO::PARAM_STR);
+            $prepQuery->bindValue(":password", $password, PDO::PARAM_STR);
+            $prepQuery->bindValue(":email", $email, PDO::PARAM_STR);
+            $prepQuery->bindValue(":firstname", $firstname, PDO::PARAM_STR);
+            $prepQuery->bindValue(":lastname", $lastname, PDO::PARAM_STR);
 
-        $selectQuery = $db -> prepare("SELECT * FROM utilisateurs WHERE 
-        login='$login' AND password='$password' AND email='$email' AND firstname='$firstname AND lastname='$lastname'");
-        $selectQuery -> execute();
-        $fetch = $selectQuery -> fetchAll();
-
-        if(empty($fetch))
-        {
-            $insertQuery = $db -> prepare("INSERT INTO utilisateurs(login, password, email, firstname, lastname) 
-            VALUES ('$login', '$password', '$email', '$firstname', '$lastname'");
-            $insertQuery -> execute();
-            $fetch = $selectQuery -> fetchAll();
-
-            $this -> id = $fetch[0]["id"];
-        }
-        else
-        {
-            return 0;
+            //ON EXECUTE LA REQUETE
+            $prepQuery->execute();
         }
     }
 
     public function connect($login, $password)
     {
-        // connexion a la base de données
-        $db = new PDO(
-            "mysql:host=localhost;dbname=classes;charset=utf-8",
-            "root"
-        );
+        $selectQuery = "SELECT * FROM `utilisateurs` WHERE login='$login' AND password='$password'";
 
-        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE 
-        login='$login' AND password='$password'");
-        $selectQuery->execute();
-        $fetch = $selectQuery->fetchAll();
+        //ON PREPARE LA REQUETE
+        $requete = $this->bdd->prepare($selectQuery);
 
-        // vérification : il y a t il un autre utilisateur correspondant ?
-        if(!empty($fetch))
-        {
-            // il y a t il déjà une session ouverte ?
-            session_start();
-            if(isset($_SESSION))
-            {
-                unset($_SESSION);
-                session_destroy();
-            }
+        //ON INJECTE LES VALEURS AVEC LA FONCTION "bindValue"
+        //PDO::PARAM_STR Pour dire que notre paramètre est une chaine de caractères
+        $requete->bindValue(":login1", $login, PDO::PARAM_STR);
+        $requete->bindValue(":password1", $login, PDO::PARAM_STR);
 
-            // initialise toutes les variables de session
-            $_SESSION["login"] = $this -> login;
-            $_SESSION["password"] = $this -> password;
-            $_SESSION["email"] = $this -> email;
-            $_SESSION["firstname"] = $this -> firstname;
-            $_SESSION["lastname"] = $this -> lastname;
-            
-            $this -> id = $fetch[0]["id"];
-            $_SESSION["id"] = $this -> id;
+        //ON EXECUTE LA REQUETE
+        $requete->execute();
+
+        $utilisateur = $requete->fetch();
+
+        if (count($utilisateur) > 0) {
+
+            $_SESSION['user_connect'] = [
+                "id" => $utilisateur["id"],
+                "login" => $utilisateur["login"],
+                "password" => $utilisateur["password"],
+                "email" => $utilisateur["email"],
+                "firstname" => $utilisateur["firstname"],
+                "lastname" => $utilisateur["lastname"]
+
+            ];
+
+            $this->id = $utilisateur["id"];
+            $this->login = $login;
+            $this->email = $utilisateur["email"];
+            $this->firstname = $utilisateur["firstname"];
+            $this->lastname = $utilisateur["lastname"];
         }
-        else
+        else 
         {
-            return 0;
+            echo 'Le login ou le mot de passe est incorrect';
         }
     }
 
+
     public function disconnect()
     {
-        // il y a t il déjà une session ouverte ?
-        session_start();
-        if(isset($_SESSION))
-        {
-            unset($_SESSION);
-            session_destroy();
-        }
+        unset($_SESSION['user_connect']);
     }
 
     public function delete()
     {
-        $id = $this -> id;
+        $deleteQuery = "DELETE FROM `utilisateurs` WHERE id='$this->id'";
 
-        $db = new PDO(
-            "mysql:host=localhost;dbname=classes;charset=utf-8",
-            "root"
-        );
-        $deleteQuery = $db->prepare("DELETE FROM utilisateurs WHERE id='$id'");
-        $deleteQuery->execute();
+        //ON PREPARE LA REQUETE
+        $requete = $this->bdd->prepare($deleteQuery);
 
-        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE id='$id'");
-        $selectQuery->execute();
-        $fetch = $selectQuery->fetchAll();
+        //ON INJECTE LES VALEURS AVEC LA FONCTION "bindValue"
+        //PDO::PARAM_STR Pour dire que notre paramètre est une chaine de carractère
+        $requete->bindValue(":id", $this->id, PDO::PARAM_STR);
 
-        // si $fetch n'a rien trouvé, alors l'utilisateur n'existe plus : la session peut être supprimée
-        if(empty($fetch))
-        {
-            // il y a t il déjà une session ouverte ?
-            session_start();
-            if(isset($_SESSION))
-            {
-                unset($_SESSION);
-                session_destroy();
-            }
-        }
+        //ON EXECUTE LA REQUETE
+        $requete->execute();
+
+        unset($_SESSION['user_connect']);
     }
 
     public function update($login, $password, $email, $firstname, $lastname)
     {
-        $id = $this -> id;
-        $db = new PDO(
-            "mysql:host=localhost;dbname=classes;charset=utf-8",
-            "root"
-        );
-        $selectQuery = $db->prepare("SELECT * FROM utilisateurs WHERE id='$id'");
-        $selectQuery->execute();
-        $fetch = $selectQuery->fetchAll();
+        $updateQuery = "UPDATE `utilisateurs` SET `login`='$login',`password`='$password',`email`='$email',`firstname`='$firstname',`lastname`='$lastname'";
 
-        if(!empty($fetch))
-        {
-            $updateQuery = $db->prepare("UPDATE utilisateurs SET
-            login='$login', password='$password', email='$email'
-            firstname='$firstname', lastname='$lastname' WHERE id='$id'");
-            $updateQuery->execute();
-            $fetch = $updateQuery->fetchAll();
+        //ON PREPARE LA REQUETE
+        $requete = $this->bdd->prepare($updateQuery);
 
-            // réassigne les attributs ET les variables de session
-            // login
-            $this -> login = $fetch[0]["login"];
-            $_SESSION["login"] = $this -> login;
-            // mot de passe
-            $this -> password = $fetch[0]["password"];
-            $_SESSION["password"] = $this -> password;
-            // email
-            $this -> email = $fetch[0]["email"];
-            $_SESSION["email"] = $this -> email;
-            // prénom
-            $this -> firstname = $fetch[0]["firstname"];
-            $_SESSION["firstname"] = $this -> firstname;
-            // nom de famille
-            $this -> lastname = $fetch[0]["lastname"];
-            $_SESSION["lastname"] = $this -> lastname;
-        }
-        else
-        {
-            return 0;
-        }
+        //ON INJECTE LES VALEURS AVEC LA FONCTION "bindValue"
+        //PDO::PARAM_STR Pour dire que notre paramètre est une chaine de carractère
+        $requete->bindValue(":login", $login, PDO::PARAM_STR);
+        $requete->bindValue(":password", $password, PDO::PARAM_STR);
+        $requete->bindValue(":email", $email, PDO::PARAM_STR);
+        $requete->bindValue(":firstname", $firstname, PDO::PARAM_STR);
+        $requete->bindValue(":lastname", $lastname, PDO::PARAM_STR);
+
+        //ON EXECUTE LA REQUETE
+        $requete->execute();
+
+        $this->login = $login;
+        $this->email = $email;
+        $this->firstname = $firstname;
+        $this->lastname = $lastname;
+
+        $_SESSION['user_connect']['login'] = $login;
+        $_SESSION['user_connect']['password'] = $password;
+        $_SESSION['user_connect']['email'] = $email;
+        $_SESSION['user_connect']['firstname'] = $firstname;
+        $_SESSION['user_connect']['lastname'] = $lastname;
     }
 
     public function isConnected()
     {
-        $id = $this -> id;
-
-        if(isset($_SESSION))
+        if (!empty($_SESSION['user_connect'])) 
         {
-            if($_SESSION["id"] == $id)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            return true;
+        } 
+        else 
+        {
+            return false;
         }
     }
 

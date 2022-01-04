@@ -1,20 +1,9 @@
 <?php
 include("user-pdo.php");
 
-$myUser = new UserPDO(
-    "tata84",
-    "tatadu84",
-    "tatadu84@gmail.com",
-    "Tata",
-    "Dupuis"
-);
+$myUser = new UserPDO();
 
-$myUser -> registerAuto();
-
-$myUser -> connect(
-    "tata84",
-    "tatadu84"
-);
-
+$myUser->register("tati", "tatatati", "tati@gmail.com", "tati", "tata");
+$myUser->connect("tati", "tatatati");
 var_dump($myUser->getAllInfos());
 ?>
